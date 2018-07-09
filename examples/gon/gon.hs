@@ -11,10 +11,10 @@ data ObjectAttribute = NoObjectAttribute
 data GameState = LevelStart Int | Level Int | GameOver
 data TileAttribute = NoTileAttribute
 
-type JGMAction a = IOGame GameAttribute ObjectAttribute GameState TileAttribute a
-type JGMObject = GameObject ObjectAttribute
-type JGMTile = Tile TileAttribute
-type JGMMap = TileMatrix TileAttribute
+type GONAction a = IOGame GameAttribute ObjectAttribute GameState TileAttribute a
+type GONObject = GameObject ObjectAttribute
+type GONTile = Tile TileAttribute
+type GONMap = TileMatrix TileAttribute
 
 
 --Tamanho do quadro e velocidade
@@ -44,7 +44,7 @@ bmpList :: FilePictureList
 bmpList = [
            ("stage1.bmp", Nothing),
            ("stage2.bmp", Nothing),
-	         ("stage3.bmp", Nothing),             
+           ("stage3.bmp", Nothing),             
            ("stage4.bmp", Nothing),
            ("stage5.bmp", Nothing),
            ("gameover.bmp", Nothing),
@@ -57,7 +57,7 @@ bmpList = [
            ("bordaVLeft.bmp",   Nothing),
            ("bordaVRight.bmp",  Nothing),
            ("grass.bmp",           Nothing),
-           ("hole.bmp",           white),
+           ("hole.bmp",           Nothing),
            ("lama.bmp",Nothing),
            ("hunters.bmp",Nothing),
            ("portal.bmp",Nothing)]
@@ -97,10 +97,10 @@ main = do
               ,(Char 'q',            Press, \_ _ -> funExit)
               ]
   
-  bmpList' <- mapM (\(a,b) -> do { a' <- getDataFileName ("examples/jgm/"++a); return (a', b)}) bmpList
+  bmpList' <- mapM (\(a,b) -> do { a' <- getDataFileName ("examples/gon/"++a); return (a', b)}) bmpList
   funInit winConfig gameMap groups (LevelStart 1) gameAttribute input gameCycle (Timer 150) bmpList'
 
-createMsgs :: [JGMObject]
+createMsgs :: [GONObject]
 createMsgs =
   let stage1 = Tex(654,500) 0
       stage2 = Tex(654,500) 1 
@@ -119,11 +119,11 @@ createMsgs =
       (object "campeao" campeao True (555,300) (0,0) NoObjectAttribute)
       ]	
 
-createGon :: JGMObject
-createGon = let pic = Tex (tileSize*1,tileSize*1) 5
+createGon :: GONObject
+createGon = let pic = Tex (tileSize*0.7,tileSize*0.7) 5
              in object "gon" pic True initPos (0,speedMod) NoObjectAttribute
 
-createInimigos :: [JGMObject]
+createInimigos :: [GONObject]
 createInimigos = let hisoka = Tex (tileSize*1.5,tileSize*1.3) 8
                      mestre = Tex (tileSize*3.0,tileSize*3.0) 9
            in[(object "hisoka1" hisoka True (45.0,405.0) (40,0) NoObjectAttribute),
@@ -136,27 +136,24 @@ createInimigos = let hisoka = Tex (tileSize*1.5,tileSize*1.3) 8
               (object "hisoka7" hisoka True (405.0,540.0) (0,40) NoObjectAttribute),
               (object "mestre" mestre True (205.0,300.0) (60,60) NoObjectAttribute)] 
 
-moveInimigoH:: JGMObject -> JGMAction()
+moveInimigoH:: GONObject -> GONAction()
 moveInimigoH inimigo = do 
 	      col1 <- objectLeftMapCollision inimigo
               col2 <- objectRightMapCollision inimigo
               when (col1 || col2) (reverseXSpeed inimigo)
      
-moveInimigoV :: JGMObject -> JGMAction()
+moveInimigoV :: GONObject -> GONAction()
 moveInimigoV inimigo = do
 	col1 <- objectTopMapCollision inimigo
         col2 <- objectBottomMapCollision inimigo
 	when (col1 || col2) (reverseYSpeed inimigo)  	
 
-moveInimigoEspecial :: JGMObject -> JGMAction()
+moveInimigoEspecial :: GONObject -> GONAction()
 moveInimigoEspecial inimigo = do
             moveInimigoV inimigo
             moveInimigoH inimigo
  
-                  
-                  
-
-turnUp :: Modifiers -> Position -> JGMAction ()
+turnUp :: Modifiers -> Position -> GONAction ()
 turnUp _ _ = do
   gon <- findObject "gon" "gon"
   gonPos <- getObjectPosition gon
@@ -165,7 +162,7 @@ turnUp _ _ = do
 	then do stop
 	else do setObjectSpeed (0,speedMod) gon
 
-turnDown :: Modifiers -> Position -> JGMAction ()
+turnDown :: Modifiers -> Position -> GONAction ()
 turnDown _ _ = do
   gon <- findObject "gon" "gon"
   gonPos <- getObjectPosition gon
@@ -174,7 +171,7 @@ turnDown _ _ = do
 	then do stop
 	else do setObjectSpeed (0,-speedMod) gon
 
-turnLeft :: Modifiers -> Position -> JGMAction ()
+turnLeft :: Modifiers -> Position -> GONAction ()
 turnLeft _ _ = do
   gon <- findObject "gon" "gon"
   gonPos <- getObjectPosition gon
@@ -184,7 +181,7 @@ turnLeft _ _ = do
 	else do setObjectSpeed (-speedMod,0) gon
 
     
-turnRight :: Modifiers -> Position -> JGMAction ()
+turnRight :: Modifiers -> Position -> GONAction ()
 turnRight _ _ = do
   gon <- findObject "gon" "gon"
   gonPos <- getObjectPosition gon
@@ -193,13 +190,13 @@ turnRight _ _ = do
 	then do stop
 	else do setObjectSpeed (speedMod,0) gon
 
-stop :: JGMAction ()
+stop :: GONAction ()
 stop = do
   gon <- findObject "gon" "gon"
   setObjectSpeed (0,0) gon
 
 
-gameCycle :: JGMAction ()
+gameCycle :: GONAction ()
 gameCycle = do
   (GA timer objetivo previousgonPos) <- getGameAttribute
   gState <- getGameState
@@ -341,10 +338,7 @@ gameCycle = do
  					 if((getTilePictureIndex tile)==18) 
                                            then setGameAttribute(GA timer True initPos)
 				     	   else return ())
-                                           
                  
-
-
       GameOver -> do
                       disableMapDrawing
                       gameover <- findObject "gameover" "messages"
@@ -355,14 +349,14 @@ gameCycle = do
                               else (setGameAttribute (GA (timer - 1) objetivo (0,0)))
 
 
-setNewMap :: Int -> JGMAction ()
+setNewMap :: Int -> GONAction ()
 setNewMap 2 = setCurrentMapIndex 1
 setNewMap 3 = setCurrentMapIndex 2
 setNewMap 4 = setCurrentMapIndex 3
 setNewMap 5 = setCurrentMapIndex 4
 setNewMap _ = return ()
 
-checkCollision :: JGMObject -> JGMAction ()
+checkCollision :: GONObject -> GONAction ()
 checkCollision gon = do
   gonPos <- getObjectPosition gon
   tile <- getTileFromWindowPosition gonPos
@@ -385,7 +379,7 @@ checkCollision gon = do
           else return()
 
 
-x,y,w,z,f,l,s,goal :: JGMTile
+x,y,w,z,f,l,s,goal :: GONTile
 
 x= (bl,False,0.0,NoTileAttribute)
 y= (br,False,0.0,NoTileAttribute)
@@ -397,7 +391,7 @@ s = (hole,True,0.0,NoTileAttribute)
 goal = (portal,False,0.0,NoTileAttribute)
 
 
-map1 :: JGMMap
+map1 :: GONMap
 map1 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,l,l,l,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
@@ -407,21 +401,21 @@ map1 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
-        [x,f,f,f,f,s,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
+        [x,f,f,f,f,s,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,s,s,s,s,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,s,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,s,s,s,s,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s,s,s,f,f,f,f,f,f,f,y],
-        [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
-        [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
-        [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,goal,f,f,f,f,f,f,f,f,f,y],
+        [s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
+        [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
+        [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,goal,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [s,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,s]]
 
 
 
-map2 :: JGMMap
+map2 :: GONMap
 map2 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,f,f,f,f,f,f,y],
@@ -443,7 +437,7 @@ map2 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
 	[s,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,s]]
 
-map3 :: JGMMap
+map3 :: GONMap
 map3 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s,s,s,s,s,s,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,f,f,goal,f,f,f,f,f,f,f,y],
@@ -465,7 +459,7 @@ map3 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s,y],
 	[s,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,s]]
 
-map4 :: JGMMap
+map4 :: GONMap
 map4 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,l,l,l,l,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,l,l,l,l,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
@@ -488,7 +482,7 @@ map4 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
 	[s,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,z,s]]
 
 
-map5 :: JGMMap	
+map5 :: GONMap	
 map5 = [[s,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,s],
         [x,f,f,f,f,f,f,f,f,f,l,l,l,l,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
         [x,f,f,f,f,f,f,f,f,f,l,l,l,l,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,y],
